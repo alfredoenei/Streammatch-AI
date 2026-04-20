@@ -1,0 +1,278 @@
+import { useState, useEffect, useRef } from 'react';
+import { movieService } from '../services/movie.service';
+import type { Movie } from '../types/movie';
+import type { SearchMode } from '../components/ModeSelector';
+
+/**
+ * Hook especializado para la gestión del Radar de Búsqueda Inteligente.
+ * v11.0: Soporte Multimodal (Cine & Series)
+ */
+export const useSearch = (platforms: string[] = [], initialMode: SearchMode = 'both') => {
+  const [query, setQuery] = useState('');
+  const [activeMode, setActiveMode] = useState<SearchMode>(initialMode);
+  const [results, setResults] = useState<Movie[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [narrative, setNarrative] = useState<string | null>(null);
+  const [chatHistory, setChatHistory] = useState<{ sender: 'user' | 'ai', text: string, timestamp: Date }[]>([]);
+  
+  // Metadata del Radar 3.1
+  const [totalRaw, setTotalRaw] = useState(0);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [interactionType, setInteractionType] = useState<'INITIAL' | 'REFINEMENT' | 'EXPANSION'>('INITIAL');
+  const [loadingStatus, setLoadingStatus] = useState('Iniciando Radar...');
+
+  // Referencias de Control y Sesión
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const lastSearchQueryRef = useRef<string>(''); 
+  const lastSearchModeRef = useRef<SearchMode>(initialMode);
+  
+  // v17.1: Persistencia Resiliente con Blindaje try/catch
+  const getSafeSessionId = (): string => {
+    try {
+      return localStorage.getItem('streammatch_session') || '';
+    } catch (err) {
+      console.warn('⚠️ Error accediendo al localStorage:', err);
+      return '';
+    }
+  };
+
+  const sessionIdRef = useRef<string>(getSafeSessionId());
+
+  // v22.0: Dynamic loading messages rotation
+  useEffect(() => {
+    if (!isSearching) return;
+    
+    const statuses = [
+      'Iniciando Radar...',
+      'Consultando archivos...',
+      'Buscando en plataformas...',
+      'Analizando alternativas...',
+      'Cocinando recomendaciones...'
+    ];
+    let i = 0;
+    const interval = setInterval(() => {
+      i = (i + 1) % statuses.length;
+      setLoadingStatus(statuses[i]);
+    }, 1800);
+    
+    return () => clearInterval(interval);
+  }, [isSearching]);
+
+
+  /**
+   * Rehidrata el estado desde el backend si hay una sesión activa en localStorage.
+   */
+  const rehydrateSession = async () => {
+    if (!sessionIdRef.current) return;
+    
+    try {
+      setIsSearching(true);
+      const sessionData = await movieService.getSessionHistory(sessionIdRef.current);
+      
+      // Validamos estructura básica para evitar crashes de renderizado
+      if (sessionData && sessionData.success && Array.isArray(sessionData.data?.history)) {
+        const history = sessionData.data.history.map((h: any) => ([
+          { 
+            sender: 'user' as const, 
+            text: typeof h.prompt === 'string' ? h.prompt : '', 
+            timestamp: h.timestamp ? new Date(h.timestamp) : new Date() 
+          },
+          { 
+            sender: 'ai' as const, 
+            text: typeof h.aiResponse === 'string' ? h.aiResponse : '', 
+            timestamp: h.timestamp ? new Date(h.timestamp) : new Date() 
+          }
+        ])).flat();
+        
+        setChatHistory(history);
+        
+        // v17.1: Si hay historial, queremos ver los últimos resultados de esa sesión
+        if (history.length > 0) {
+          const lastUserPrompt = [...history].reverse().find(m => m.sender === 'user')?.text;
+          if (lastUserPrompt && lastUserPrompt.length >= 3) {
+            performSearch(lastUserPrompt, false, activeMode, true);
+          }
+        }
+      } else {
+         throw new Error('Estructura de historial inválida o inexistente');
+      }
+    } catch (err) {
+      console.warn('⚠️ Fallo al rehidratar sesión. Limpiando contexto:', err);
+      try {
+        localStorage.removeItem('streammatch_session');
+      } catch (e) {}
+      sessionIdRef.current = '';
+      setChatHistory([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  /**
+   * Ejecuta la búsqueda semántica en el backend.
+   */
+  const performSearch = async (
+    searchQuery: string, 
+    ignorePlatforms: boolean = false, 
+    mode: SearchMode = activeMode,
+    isRehydration: boolean = false
+  ) => {
+    const trimmedQuery = searchQuery.trim();
+
+    // 1. Validación de longitud mínima
+    if (trimmedQuery.length < 3) {
+      if (!isRehydration) {
+        if (abortControllerRef.current) abortControllerRef.current.abort();
+        setResults([]);
+        setMessage(null);
+        setNarrative(null);
+        setTotalRaw(0);
+        setIsExpanded(false);
+        setIsSearching(false);
+        lastSearchQueryRef.current = '';
+      }
+      return;
+    }
+
+    // 2. Blindaje de Redundancia (Query + Mode)
+    if (trimmedQuery === lastSearchQueryRef.current && mode === lastSearchModeRef.current && !ignorePlatforms) {
+      return;
+    }
+
+    // Si no tenemos sessionId y no es rehidratación, generamos uno nuevo y lo guardamos
+    if (!sessionIdRef.current) {
+        sessionIdRef.current = Math.random().toString(36).substring(2, 15);
+        localStorage.setItem('streammatch_session', sessionIdRef.current);
+    }
+
+    // Cancelar petición previa
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    setIsSearching(true);
+    setError(null);
+    setMessage(null);
+    setNarrative(null);
+    lastSearchQueryRef.current = trimmedQuery;
+    lastSearchModeRef.current = mode;
+
+    // Actualizamos el historial visual LOCALMENTE para respuesta inmediata (solo si no es rehidratación)
+    if (!isRehydration) {
+      setChatHistory(prev => [...prev, { sender: 'user', text: trimmedQuery, timestamp: new Date() }]);
+    }
+
+    try {
+      const response = await movieService.recommendAI(
+        trimmedQuery, 
+        platforms, 
+        ignorePlatforms, 
+        controller.signal,
+        mode,
+        sessionIdRef.current
+      );
+
+      if (controller.signal.aborted) return;
+
+      if (response.success === false) {
+        if (response.isAbort) return;
+        throw new Error(response.message);
+      }
+      
+      if (response.success) {
+        setResults(response.data || []);
+        setMessage(response.message || null);
+        setNarrative(response.narrative || null);
+        setTotalRaw(response.meta?.totalRaw || 0);
+        setIsExpanded(response.meta?.isExpanded || false);
+        
+        // v17.0: Añadir respuesta de la IA al historial
+        if (response.narrative) {
+          setChatHistory(prev => [...prev, { sender: 'ai', text: response.narrative!, timestamp: new Date() }]);
+        }
+
+        if ((response as any).interaction_type) {
+          setInteractionType((response as any).interaction_type);
+        } else if (results.length > 0) {
+          setInteractionType('REFINEMENT');
+        }
+      }
+
+    } catch (err: any) {
+      if (err.name === 'AbortError' || err.message === 'Request canceled') return; 
+      
+      const isNetworkError = !err.response || err.message.includes('Network Error') || err.message.includes('Failed to fetch');
+      const errorMsg = isNetworkError 
+        ? 'Parece que hay un problema de conexión. Por favor, verifica tu red o desactiva bloqueadores de anuncios (pueden interferir con el Radar).'
+        : (err.message || 'Error en la conexión con el Radar.');
+        
+      setError(errorMsg);
+    } finally {
+      if (abortControllerRef.current === controller) {
+        setIsSearching(false);
+      }
+    }
+  };
+
+  /**
+   * Limpia la sesión actual y resetea el Radar.
+   */
+  const resetRadar = async () => {
+    // 1. Instant Clean Up (Frontend-First)
+    try {
+      localStorage.removeItem('streammatch_session');
+    } catch (e) {}
+
+    const oldSessionId = sessionIdRef.current;
+    sessionIdRef.current = '';
+    setResults([]);
+    setQuery('');
+    setNarrative(null);
+    setMessage(null);
+    setChatHistory([]);
+    setInteractionType('INITIAL');
+    setLoadingStatus('Iniciando Radar...');
+    lastSearchQueryRef.current = '';
+    setError(null);
+
+    // 2. Background Sync (Fire & Forget)
+    if (oldSessionId) {
+      movieService.clearSession(oldSessionId).catch(err => {
+        console.warn('⚠️ [RADAR_CLEANUP] Silent failure in background session deletion:', err);
+      });
+    }
+  };
+
+  // v17.0: Rehidratar al cargar el hook
+  useEffect(() => {
+    rehydrateSession();
+  }, []);
+
+
+  return {
+    query,
+    setQuery,
+    activeMode,
+    setActiveMode,
+    results,
+    isSearching,
+    error,
+    message,
+    narrative,
+    chatHistory, // v17.0
+    totalRaw,
+    isExpanded,
+    interactionType,
+    loadingStatus, // v22.0
+    hasActiveSession: chatHistory.length > 0,
+    isActive: query.trim().length >= 3 || chatHistory.length > 0,
+    handleAISearch: () => performSearch(query, false, activeMode),
+    triggerExpandedSearch: () => performSearch(query, true, activeMode),
+    resetRadar
+  };
+};
