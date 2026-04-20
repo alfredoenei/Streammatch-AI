@@ -70,4 +70,4 @@ cd frontend && npm install && npm run dev
 ```
 
 ---
-*Desarrollado con ❤️ para amantes del cine de alta fidelidad.*
+*Desarrollado por Alf, para amantes del cine de alta fidelidad.*
