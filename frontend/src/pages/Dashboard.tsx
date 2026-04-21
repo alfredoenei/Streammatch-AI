@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertCircle, Check, Film, History, Loader2, PartyPopper, Save, Search, Settings, Sparkles, Tv, Users, X } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { Film, History, PartyPopper, Settings, Sparkles, Tv, Users, X } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import { movieService } from '../services/movie.service';
-import type { Movie } from '../types/movie';
+import type { Movie, IPlatform } from '../types/movie';
 import MovieGrid from '../components/MovieGrid';
 import MovieModal from '../components/MovieModal';
 import SearchBar from '../components/SearchBar';
@@ -31,7 +31,7 @@ const Dashboard: React.FC = () => {
   });
 
   // Magic Platforms: Inline Selection State
-  const [availablePlatforms, setAvailablePlatforms] = useState<any[]>([]);
+  const [availablePlatforms, setAvailablePlatforms] = useState<IPlatform[]>([]);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
 
   // Modo Fiesta State
@@ -62,12 +62,9 @@ const Dashboard: React.FC = () => {
     setActiveMode,
     results: searchResults, 
     isSearching, 
-    error: searchError, 
     message: searchMessage,
-    narrative: searchNarrative, // v16.1
     totalRaw,
     isExpanded,
-    interactionType, // v16.4
     loadingStatus, // v22.0
     hasActiveSession,
     chatHistory, // v17.0
@@ -92,7 +89,7 @@ const Dashboard: React.FC = () => {
           darkVibrant: palette.DarkVibrant?.hex || '#3730a3',
           muted: palette.Muted?.hex || '#a855f7',
         });
-      } catch (err) {
+      } catch {
         // Ignorar errores de CORS o posters vacíos
       }
     };
@@ -100,7 +97,6 @@ const Dashboard: React.FC = () => {
   }, [searchResults, recommendations, isSearchActive]);
   
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedMovie, setSelectedMovie] = useState<{ id: number; type: 'movie' | 'tv' } | null>(null);
   const [isSynced, setIsSynced] = useState(false); // v10.0: Success feedback state
 
@@ -113,12 +109,12 @@ const Dashboard: React.FC = () => {
         if (user?.streamingPlatforms) {
           setSelectedPlatforms(user.streamingPlatforms);
         }
-      } catch (err) {
+      } catch (err: unknown) {
         console.error("Platforms Error:", err);
       }
     };
     initPlatforms();
-  }, [user?.id]);
+  }, [user?.id, user?.streamingPlatforms]);
 
   const hasFetchedTrendingRef = useRef(false);
 
@@ -137,19 +133,18 @@ const Dashboard: React.FC = () => {
       }
 
       setIsLoading(true);
-      setError(null);
       try {
         const data = await movieService.getRecommendations(activePlatforms);
         setRecommendations(data.data || []);
         hasFetchedTrendingRef.current = true;
-      } catch (err: any) {
-        setError(err.message || 'Error al cargar recomendaciones.');
+      } catch (err: unknown) {
+        console.error('Recommendations Error:', err);
       } finally {
         setIsLoading(false);
       }
     };
     if (isAuthenticated) fetchRecommendations();
-  }, [partyMode.isActive, partyMode.commonPlatforms, user?.streamingPlatforms, isAuthenticated, hasActiveSession]);
+  }, [partyMode.isActive, partyMode.commonPlatforms, user?.streamingPlatforms, isAuthenticated, hasActiveSession, activePlatforms]);
 
   const handleTogglePlatform = (id: string) => {
     setSelectedPlatforms(prev => 
@@ -170,7 +165,7 @@ const Dashboard: React.FC = () => {
       if (searchSection) {
         searchSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Save Error:", err);
     }
   };
@@ -192,7 +187,6 @@ const Dashboard: React.FC = () => {
   const displayedMovies = isSearchActive ? searchResults : recommendations;
   // Solo mostramos Loading Global (skeletons) si no tenemos nada que mostrar (pantalla vacía)
   const isGlobalLoading = (isLoading && recommendations.length === 0) || (isSearching && searchResults.length === 0 && isSearchActive);
-  const activeError = error || searchError;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 selection:bg-indigo-500/30 font-sans transition-colors duration-1000">
@@ -403,20 +397,16 @@ const Dashboard: React.FC = () => {
              <div className="w-full max-w-4xl flex flex-col items-center gap-8 py-2">
                 <div className="flex flex-wrap justify-center gap-3">
                 {availablePlatforms.map((platform, index) => {
-                    const isSelected = selectedPlatforms.includes(platform.id);
+                    const isSelected = selectedPlatforms.includes(platform.id.toString());
                     return (
                     <button
                         key={platform.id ? `platform-${platform.id}` : `fallback-platform-${index}`}
-                        onClick={() => handleTogglePlatform(platform.id)}
+                        onClick={() => handleTogglePlatform(platform.id.toString())}
                         className={`relative px-4 py-2 rounded-full flex items-center gap-2 transition-all duration-500 border ${
                         isSelected 
-                            ? 'shadow-2xl border-white/20' 
+                            ? 'bg-gradient-to-r from-sky-500/20 to-indigo-600/20 border-sky-400/50 shadow-[0_0_25px_rgba(56,189,248,0.2)] opacity-100 scale-105' 
                             : 'bg-zinc-900/40 border-white/5 opacity-40 hover:opacity-100 hover:bg-zinc-800'
                         }`}
-                        style={{
-                        backgroundColor: isSelected ? platform.color : undefined,
-                        boxShadow: isSelected ? `0 10px 30px -10px ${platform.color}80` : undefined
-                        }}
                     >
                         <div className="w-4 h-4 flex items-center justify-center overflow-hidden rounded-sm bg-white/10">
                         <img src={platform.logo} alt={platform.name} className="w-full h-full object-contain" />
@@ -433,8 +423,10 @@ const Dashboard: React.FC = () => {
                 whileTap={{ scale: 0.95 }}
                 onClick={handleSavePlatforms}
                 disabled={isUpdatingProfile}
-                className={`group px-8 py-3 rounded-full font-black text-[10px] uppercase tracking-[0.3em] text-white transition-all disabled:opacity-50 ${
-                    isSynced ? 'bg-emerald-600' : 'bg-zinc-900 border border-white/10 hover:border-white/20'
+                className={`group px-8 py-3 rounded-full font-black text-[10px] uppercase tracking-[0.3em] text-white transition-all disabled:opacity-50 border ${
+                    isSynced 
+                        ? 'bg-emerald-600 border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.3)]' 
+                        : 'bg-zinc-950 border-white/10 hover:border-indigo-500/50 hover:shadow-[0_0_20px_rgba(99,102,241,0.2)]'
                 }`}
                 >
                 {isSynced ? 'Sincronizado' : 'Guardar Preferencias'}

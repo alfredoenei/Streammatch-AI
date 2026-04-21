@@ -1,6 +1,6 @@
 import axios from 'axios';
 import api from './api';
-import type { MovieResponse } from '../types/movie';
+import type { Movie, MovieResponse, ISessionHistory, IPlatform, DetailedMovie } from '../types/movie';
 
 class MovieService {
   /**
@@ -13,9 +13,12 @@ class MovieService {
         : '/movies/recommendations';
       const response = await api.get<MovieResponse>(url);
       return response.data;
-    } catch (error: any) {
-      console.error('Frontend MovieService Error:', error.response?.data || error.message);
-      throw new Error(error.response?.data?.message || 'Error al obtener las recomendaciones.');
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        console.error('Frontend MovieService Error:', error.response?.data || error.message);
+        throw new Error(error.response?.data?.message || 'Error al obtener las recomendaciones.');
+      }
+      throw error;
     }
   }
 
@@ -27,22 +30,28 @@ class MovieService {
     try {
       const response = await api.get<MovieResponse>('/users/history');
       return response.data;
-    } catch (error: any) {
-      console.error('Frontend MovieService Error (History):', error.response?.data || error.message);
-      throw new Error(error.response?.data?.message || 'Error al obtener tu historial.');
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        console.error('Frontend MovieService Error (History):', error.response?.data || error.message);
+        throw new Error(error.response?.data?.message || 'Error al obtener tu historial.');
+      }
+      throw error;
     }
   }
 
   /**
    * Obtiene los detalles completos de una película o serie de forma determinista.
    */
-  async getMovieDetails(movieId: number, mediaType: 'movie' | 'tv'): Promise<any> {
+  async getMovieDetails(movieId: number, mediaType: 'movie' | 'tv'): Promise<DetailedMovie> {
     try {
-      const response = await api.get(`/movies/${movieId}?mediaType=${mediaType}`);
+      const response = await api.get<DetailedMovie>(`/movies/${movieId}?mediaType=${mediaType}`);
       return response.data;
-    } catch (error: any) {
-      console.error('Frontend MovieService Error (Single):', error.response?.data || error.message);
-      throw new Error(error.response?.data?.message || 'Error al obtener los detalles del contenido.');
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        console.error('Frontend MovieService Error (Single):', error.response?.data || error.message);
+        throw new Error(error.response?.data?.message || 'Error al obtener los detalles del contenido.');
+      }
+      throw error;
     }
   }
 
@@ -50,12 +59,14 @@ class MovieService {
   /**
    * Obtiene la lista de plataformas disponibles con su metadata premium (logos, colores).
    */
-  async getAvailablePlatforms(): Promise<{ success: boolean; data: any[] }> {
+  async getAvailablePlatforms(): Promise<{ success: boolean; data: IPlatform[] }> {
     try {
-      const response = await api.get('/movies/platforms');
+      const response = await api.get<{ success: boolean; data: IPlatform[] }>('/movies/platforms');
       return response.data;
-    } catch (error: any) {
-      console.error('Frontend MovieService Error (Platforms):', error.message);
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        console.error('Frontend MovieService Error (Platforms):', error.message);
+      }
       throw new Error('Error al conectar con el catálogo de plataformas.');
     }
   }
@@ -80,13 +91,16 @@ class MovieService {
         }
       );
       return response.data;
-    } catch (error: any) {
-      if (axios.isCancel(error)) {
-        console.log('Radar request canceled:', prompt);
-        return { success: false, data: [], message: 'Request canceled' };
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        if (error.name === 'AbortError' || error.message === 'Request canceled') {
+          console.log('Radar request canceled:', prompt);
+          return { success: false, data: [], message: 'Request canceled', isAbort: true };
+        }
+        console.error('Frontend AIService Error:', error.response?.data || error.message);
+        throw new Error(error.response?.data?.message || 'Error en la magia del Radar.');
       }
-      console.error('Frontend AIService Error:', error.response?.data || error.message);
-      throw new Error(error.response?.data?.message || 'Error en la magia del Radar.');
+      throw error;
     }
   }
 
@@ -97,48 +111,60 @@ class MovieService {
     try {
       const response = await api.delete(`/movies/session/${sessionId}`);
       return response.data;
-    } catch (error: any) {
-      console.error('Frontend AIService Error (Clear):', error.response?.data || error.message);
-      throw new Error(error.response?.data?.message || 'Error al limpiar la sesión del Radar.');
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        console.error('Frontend AIService Error (Clear):', error.response?.data || error.message);
+        throw new Error(error.response?.data?.message || 'Error al limpiar la sesión del Radar.');
+      }
+      throw error;
     }
   }
 
   /**
    * Recupera el historial de una sesión activa (v17.0).
    */
-  async getSessionHistory(sessionId: string): Promise<{ success: boolean; data: any }> {
+  async getSessionHistory(sessionId: string): Promise<ISessionHistory> {
     try {
-      const response = await api.get(`/movies/session/${sessionId}`);
+      const response = await api.get<ISessionHistory>(`/movies/session/${sessionId}`);
       return response.data;
-    } catch (error: any) {
-      console.error('Frontend AIService Error (History):', error.response?.data || error.message);
-      throw new Error(error.response?.data?.message || 'Error al recuperar el historial del Radar.');
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        console.error('Frontend AIService Error (History):', error.response?.data || error.message);
+        throw new Error(error.response?.data?.message || 'Error al recuperar el historial del Radar.');
+      }
+      throw error;
     }
   }
 
   /**
    * El Cofre: Guardar o elminar de la watchlist (v18.0).
    */
-  async toggleWatchlist(movie: any): Promise<any> {
+  async toggleWatchlist(movie: Movie): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await api.post('/watchlist', { movie });
+      const response = await api.post<{ success: boolean; message: string }>('/watchlist', { movie });
       return response.data;
-    } catch (error: any) {
-      console.error('Frontend Watchlist Error (Toggle):', error.response?.data || error.message);
-      throw new Error(error.response?.data?.message || 'Error al actualizar tu cofre.');
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        console.error('Frontend Watchlist Error (Toggle):', error.response?.data || error.message);
+        throw new Error(error.response?.data?.message || 'Error al actualizar tu cofre.');
+      }
+      throw error;
     }
   }
 
   /**
    * El Cofre: Recuperar todos los tesoros guardados (v18.0).
    */
-  async getWatchlist(): Promise<any> {
+  async getWatchlist(): Promise<{ success: boolean; data: Movie[] }> {
     try {
-      const response = await api.get('/watchlist');
+      const response = await api.get<{ success: boolean; data: Movie[] }>('/watchlist');
       return response.data;
-    } catch (error: any) {
-      console.error('Frontend Watchlist Error (Get):', error.response?.data || error.message);
-      throw new Error(error.response?.data?.message || 'Error al recuperar tu cofre.');
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        console.error('Frontend Watchlist Error (Get):', error.response?.data || error.message);
+        throw new Error(error.response?.data?.message || 'Error al recuperar tu cofre.');
+      }
+      throw error;
     }
   }
 }

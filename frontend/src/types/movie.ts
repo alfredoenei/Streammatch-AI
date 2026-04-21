@@ -5,9 +5,15 @@ export interface IPremiumMetadata {
   url?: string; // v34.7: Added for deep links
 }
 
+export interface ISource {
+  platform: string;
+  url: string;
+  name: string;
+}
+
 export interface IAvailability {
   isAvailable: boolean;
-  sources?: { platform: string; url: string; name: string }[];
+  sources?: ISource[];
 }
 
 export interface Movie {
@@ -28,7 +34,7 @@ export interface Movie {
   isExternal?: boolean;
   premiumMetadata?: IPremiumMetadata | null;
   isAvailable?: boolean;
-  allAvailableProviders?: any[];
+  allAvailableProviders?: ISource[]; // Changed from any[]
   // v14.1 Aggregator fields
   posterUrl?: string | null;
   backdropUrl?: string | null;
@@ -65,6 +71,30 @@ export interface MovieResponse {
     isExpanded?: boolean;
     region?: string;
     media_type?: 'movie' | 'tv' | 'both';
+    interaction_type?: 'INITIAL' | 'REFINEMENT' | 'EXPANSION';
   };
   isAbort?: boolean;
+}
+
+export interface ISessionHistoryItem {
+  prompt: string;
+  aiResponse: string;
+  timestamp: string;
+}
+
+export interface ISessionHistory {
+  success: boolean;
+  data: {
+    history: ISessionHistoryItem[];
+    lastResults?: Movie[];
+    lastNarrative?: string;
+    lastMessage?: string;
+  };
+}
+
+export interface IPlatform {
+  id: number;
+  name: string;
+  logo: string;
+  brandColor: string;
 }

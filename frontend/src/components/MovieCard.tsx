@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Star, Eye, Play, Bookmark, Globe, Loader2, Film } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { Star, Eye, Play, Bookmark, Globe, Film } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import type { Movie } from '../types/movie';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 interface MovieCardProps {
   movie: Movie;
   onOpenModal?: (id: number, type: 'movie' | 'tv') => void;
 }
 
-const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
+
 
 const MovieCard: React.FC<MovieCardProps> = ({ movie, onOpenModal }) => {
   const { user } = useAuth();
@@ -23,7 +23,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie, onOpenModal }) => {
   const isSaved = isInWatchlist(movieIdNum);
 
   const [isWatched, setIsWatched] = useState(
-    user?.watchedMovies.some((w: any) => w.id === movieIdNum && w.media_type === mType) || false
+    user?.watchedMovies.some((w) => w.id === movieIdNum && w.media_type === mType) || false
   );
   const [isUpdating, setIsUpdating] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -45,7 +45,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie, onOpenModal }) => {
 
   // --- v18.3: STRICT URL RESOLUTION ---
   const sources = movie.availability?.sources || [];
-  const premiumUrl = (movie.premiumMetadata as any)?.url;
+  const premiumUrl = movie.premiumMetadata?.url;
 
   const getValidUrl = (): string | null => {
     if (premiumUrl && typeof premiumUrl === 'string' && premiumUrl.startsWith('http')) return premiumUrl;
@@ -63,11 +63,11 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie, onOpenModal }) => {
     if (!hasValidLink && movie.isAvailable !== false) {
       console.warn(`⚠️ [ORPHAN_TITLE]: "${movie.title || movie.name}" no tiene links válidos. Activando Smart Fallback.`);
     }
-  }, [hasValidLink, movie.title, movie.name]);
+  }, [hasValidLink, movie.title, movie.name, movie.isAvailable]);
 
   useEffect(() => {
     const freshId = Number(movie.id);
-    setIsWatched(user?.watchedMovies.some((w: any) => w.id === freshId && w.media_type === mType) || false);
+    setIsWatched(user?.watchedMovies.some((w) => w.id === freshId && w.media_type === mType) || false);
   }, [user?.watchedMovies, movie.id, mType]);
 
 

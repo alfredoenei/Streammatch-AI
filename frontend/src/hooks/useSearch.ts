@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
 import { movieService } from '../services/movie.service';
 import type { Movie } from '../types/movie';
 import type { SearchMode } from '../components/ModeSelector';
@@ -32,7 +33,7 @@ export const useSearch = (platforms: string[] = [], initialMode: SearchMode = 'b
   const getSafeSessionId = (): string => {
     try {
       return localStorage.getItem('streammatch_session') || '';
-    } catch (err) {
+    } catch (err: unknown) {
       console.warn('⚠️ Error accediendo al localStorage:', err);
       return '';
     }
@@ -73,7 +74,7 @@ export const useSearch = (platforms: string[] = [], initialMode: SearchMode = 'b
       
       // Validamos estructura básica para evitar crashes de renderizado
       if (sessionData && sessionData.success && Array.isArray(sessionData.data?.history)) {
-        const history = sessionData.data.history.map((h: any) => ([
+        const history = sessionData.data.history.map((h) => ([
           { 
             sender: 'user' as const, 
             text: typeof h.prompt === 'string' ? h.prompt : '', 
@@ -104,11 +105,13 @@ export const useSearch = (platforms: string[] = [], initialMode: SearchMode = 'b
       } else {
          throw new Error('Estructura de historial inválida o inexistente');
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.warn('⚠️ Fallo al rehidratar sesión. Limpiando contexto:', err);
       try {
         localStorage.removeItem('streammatch_session');
-      } catch (e) {}
+      } catch {
+        // Ignorar error de limpieza de sesión
+      }
       sessionIdRef.current = '';
       setChatHistory([]);
     } finally {
@@ -197,27 +200,33 @@ export const useSearch = (platforms: string[] = [], initialMode: SearchMode = 'b
         setTotalRaw(response.meta?.totalRaw || 0);
         setIsExpanded(response.meta?.isExpanded || false);
         
-        // v17.0: Añadir respuesta de la IA al historial
         if (response.narrative) {
           setChatHistory(prev => [...prev, { sender: 'ai', text: response.narrative!, timestamp: new Date() }]);
         }
 
-        if ((response as any).interaction_type) {
-          setInteractionType((response as any).interaction_type);
-        } else if (results.length > 0) {
-          setInteractionType('REFINEMENT');
+        // v16.3 interaction type handling
+        if (response.meta?.interaction_type) {
+           setInteractionType(response.meta.interaction_type);
+        } else if (response.data && response.data.length > 0) {
+           setInteractionType('REFINEMENT');
         }
       }
 
-    } catch (err: any) {
-      if (err.name === 'AbortError' || err.message === 'Request canceled') return; 
-      
-      const isNetworkError = !err.response || err.message.includes('Network Error') || err.message.includes('Failed to fetch');
-      const errorMsg = isNetworkError 
-        ? 'Parece que hay un problema de conexión. Por favor, verifica tu red o desactiva bloqueadores de anuncios (pueden interferir con el Radar).'
-        : (err.message || 'Error en la conexión con el Radar.');
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        if (error.name === 'AbortError' || error.message === 'Request canceled') return; 
         
-      setError(errorMsg);
+        const isNetworkError = !error.response || error.message.includes('Network Error') || error.message.includes('Failed to fetch');
+        const errorMsg = isNetworkError 
+          ? 'Parece que hay un problema de conexión. Por favor, verifica tu red o desactiva bloqueadores de anuncios (pueden interferir con el Radar).'
+          : (error.message || 'Error en la conexión con el Radar.');
+          
+        setError(errorMsg);
+      } else {
+         const err = error as Error;
+         if (err.name === 'AbortError') return;
+         setError(err.message || 'Error en la conexión con el Radar.');
+      }
     } finally {
       if (abortControllerRef.current === controller) {
         setIsSearching(false);
@@ -232,7 +241,9 @@ export const useSearch = (platforms: string[] = [], initialMode: SearchMode = 'b
     // 1. Instant Clean Up (Frontend-First)
     try {
       localStorage.removeItem('streammatch_session');
-    } catch (e) {}
+    } catch {
+      // Ignorar error de limpieza de sesión
+    }
 
     const oldSessionId = sessionIdRef.current;
     sessionIdRef.current = '';

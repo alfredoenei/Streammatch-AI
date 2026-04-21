@@ -1,6 +1,6 @@
 import MovieCard from './MovieCard';
 import type { Movie } from '../types/movie';
-import { motion } from 'framer-motion';
+import { motion, type Variants } from 'framer-motion';
 
 interface MovieGridProps {
   movies: Movie[];
@@ -53,7 +53,7 @@ const MovieGrid: React.FC<MovieGridProps> = ({ movies, isLoading, onOpenModal })
     }
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 30 },
     visible: { 
       opacity: 1, 

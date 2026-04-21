@@ -1,10 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { Film, Mail, Lock, Eye, EyeOff, Loader2, ChevronRight, User, CheckCircle2, Quote as QuoteIcon } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import loginBg from '../assets/login-bg.png';
 
 const registerSchema = z.object({
@@ -54,7 +54,7 @@ const Register: React.FC = () => {
   const { register: registerAuth } = useAuth();
   const navigate = useNavigate();
 
-  const selectedQuote = useMemo(() => EPIC_QUOTES[Math.floor(Math.random() * EPIC_QUOTES.length)], []);
+  const [selectedQuote] = useState(() => EPIC_QUOTES[Math.floor(Math.random() * EPIC_QUOTES.length)]);
 
   const {
     register,
@@ -71,8 +71,9 @@ const Register: React.FC = () => {
       setError(null);
       await registerAuth(data.name, data.email, data.password, data.streamingPlatforms);
       navigate('/');
-    } catch (err: any) {
-      setError(err.message || 'Error al crear la cuenta. Inténtelo de nuevo.');
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Error al crear la cuenta. Inténtelo de nuevo.';
+      setError(errorMsg);
     }
   };
 
@@ -159,7 +160,7 @@ const Register: React.FC = () => {
                             type="button"
                             onClick={() => {
                               const newValue = isSelected
-                                ? field.value.filter((val: string) => val !== platform.id)
+                                ? field.value.filter((val) => val !== platform.id)
                                 : [...field.value, platform.id];
                               field.onChange(newValue);
                             }}

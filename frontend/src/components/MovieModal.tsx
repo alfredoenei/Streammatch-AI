@@ -22,16 +22,20 @@ const MovieModal: React.FC<MovieModalProps> = ({ movieData, onClose }) => {
   // Cargar detalles
   useEffect(() => {
     if (movieData) {
-      setIsLoading(true);
+      Promise.resolve().then(() => {
+        setIsLoading(true);
+      });
       movieService.getMovieDetails(movieData.id, movieData.type)
         .then(res => {
-          setMovie(res.data as DetailedMovie);
+          setMovie(res);
         })
         .catch(err => console.error("Error loading movie details:", err))
         .finally(() => setIsLoading(false));
     } else {
-      setMovie(null);
-      setShowTrailer(false);
+      Promise.resolve().then(() => {
+        setMovie(null);
+        setShowTrailer(false);
+      });
     }
   }, [movieData]);
 
@@ -57,7 +61,7 @@ const MovieModal: React.FC<MovieModalProps> = ({ movieData, onClose }) => {
 
 
   const trailer = movie?.videos?.results.find(
-    (v: any) => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser')
+    (v) => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser')
   );
 
   const title = movie?.local_title || movie?.title || movie?.name || movie?.original_title || 'Cargando...';
@@ -183,7 +187,7 @@ const MovieModal: React.FC<MovieModalProps> = ({ movieData, onClose }) => {
 
                     {movie.genres && (
                       <div className="flex flex-wrap gap-2">
-                        {movie.genres.map((g: any, index: number) => (
+                        {movie.genres.map((g, index) => (
                           <span key={g.id ? `genre-${g.id}` : `fallback-genre-${index}`} className="px-4 py-2 bg-zinc-800/50 border border-white/5 rounded-xl text-xs font-bold text-zinc-300">
                             {g.name}
                           </span>

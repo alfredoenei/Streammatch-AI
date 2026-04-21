@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '../context/AuthContext';
-import type { ITasteProfile } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
+import type { ITasteProfile } from '../types/auth';
 import { Film, Sparkles, Check, Settings } from 'lucide-react';
 
 const GENRES = ['Acción', 'Comedia', 'Drama', 'Terror', 'Sci-Fi', 'Documental', 'Animación', 'Suspenso', 'Fantasía'];
@@ -131,7 +131,7 @@ const Onboarding: React.FC = () => {
                   ].map(opt => (
                     <motion.button
                       key={opt.id}
-                      onClick={() => setProfile({ ...profile, pace: opt.id as any })}
+                      onClick={() => setProfile({ ...profile, pace: opt.id as ITasteProfile['pace'] })}
                       whileHover={opt.shake ? { x: [0, -2, 2, -2, 2, 0] } : { scale: 1.02 }}
                       className={`p-6 rounded-xl border flex flex-col items-center gap-4 transition-all ${
                         profile.pace === opt.id 
@@ -162,7 +162,7 @@ const Onboarding: React.FC = () => {
                   ].map(opt => (
                     <button
                       key={opt.id}
-                      onClick={() => setProfile({ ...profile, tone: opt.id as any })}
+                      onClick={() => setProfile({ ...profile, tone: opt.id as ITasteProfile['tone'] })}
                       className={`w-full p-4 rounded-xl border text-left transition-all ${
                         profile.tone === opt.id 
                           ? 'bg-amber-500/5 border-amber-500/50' 
@@ -193,7 +193,7 @@ const Onboarding: React.FC = () => {
                   ].map(opt => (
                     <button
                       key={opt.id}
-                      onClick={() => setProfile({ ...profile, era: opt.id as any })}
+                      onClick={() => setProfile({ ...profile, era: opt.id as ITasteProfile['era'] })}
                       className={`p-4 rounded-xl border transition-all ${
                         profile.era === opt.id 
                           ? 'bg-amber-500/10 border-amber-500 text-white' 

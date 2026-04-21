@@ -1,16 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Film, ChevronLeft, Save, Loader2, CheckCircle2, Tv, Trash2, AlertTriangle } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import { movieService } from '../services/movie.service';
+import type { IPlatform } from '../types/movie';
 
-interface PlatformMetadata {
-  id: string;
-  name: string;
-  color: string;
-  logo: string;
-}
 
 const Settings: React.FC = () => {
   const { user, resetTasteProfile } = useAuth();
@@ -18,7 +13,7 @@ const Settings: React.FC = () => {
   const navigate = useNavigate();
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [isResetting, setIsResetting] = useState(false);
-  const [availablePlatforms, setAvailablePlatforms] = useState<PlatformMetadata[]>([]);
+  const [availablePlatforms, setAvailablePlatforms] = useState<IPlatform[]>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +24,7 @@ const Settings: React.FC = () => {
       try {
         const response = await movieService.getAvailablePlatforms();
         setAvailablePlatforms(response.data);
-      } catch (err: any) {
+      } catch {
         setError('No se pudo cargar el catálogo de marcas oficiales.');
       } finally {
         setIsDataLoading(false);
@@ -63,8 +58,9 @@ const Settings: React.FC = () => {
       await updatePlatforms(selectedPlatforms);
       setShowSuccess(true);
       setTimeout(() => navigate('/'), 1500);
-    } catch (err: any) {
-      setError(err.message || 'Error al guardar las preferencias.');
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Error al guardar las preferencias.';
+      setError(errorMsg);
     }
   };
 
@@ -81,8 +77,9 @@ const Settings: React.FC = () => {
     try {
       await resetTasteProfile();
       navigate('/');
-    } catch (err: any) {
-      setError(err.message || 'Error al reiniciar el perfil.');
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Error al reiniciar el perfil.';
+      setError(errorMsg);
       setIsResetting(false);
     }
   };
@@ -137,11 +134,11 @@ const Settings: React.FC = () => {
                 <div key={i} className="h-24 bg-white/5 rounded-3xl animate-pulse border border-white/5" />
               ))
             ) : availablePlatforms.map((platform) => {
-              const isSelected = selectedPlatforms.includes(platform.id);
+              const isSelected = selectedPlatforms.includes(platform.id.toString());
               return (
                 <button
                   key={platform.id}
-                  onClick={() => togglePlatform(platform.id)}
+                  onClick={() => togglePlatform(platform.id.toString())}
                   disabled={isUpdating || showSuccess}
                   className={`relative flex flex-col items-center justify-center gap-4 p-6 rounded-3xl border transition-all duration-500 group overflow-hidden ${
                     isSelected
@@ -149,8 +146,8 @@ const Settings: React.FC = () => {
                       : 'bg-zinc-900/40 border-white/5 hover:border-white/10 grayscale hover:grayscale-0'
                   }`}
                   style={{
-                    boxShadow: isSelected ? `0 0 30px ${platform.color}15` : undefined,
-                    borderColor: isSelected ? `${platform.color}50` : undefined
+                    boxShadow: isSelected ? `0 0 30px ${platform.brandColor}15` : undefined,
+                    borderColor: isSelected ? `${platform.brandColor}50` : undefined
                   }}
                 >
                   <div className="relative z-10 flex flex-col items-center gap-3">
@@ -165,7 +162,7 @@ const Settings: React.FC = () => {
                   </div>
                   
                   {isSelected && (
-                    <div className="absolute inset-0 z-0 opacity-10" style={{ backgroundColor: platform.color }} />
+                    <div className="absolute inset-0 z-0 opacity-10" style={{ backgroundColor: platform.brandColor }} />
                   )}
 
                   {isSelected && (

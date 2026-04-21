@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Users, Mail, Loader2, Sparkles, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import axios from 'axios';
 import api from '../services/api';
 
 interface SyncPanelProps {
@@ -29,9 +30,13 @@ const SyncPanel: React.FC<SyncPanelProps> = ({ onSync, onClose }) => {
       const { friendName, commonPlatforms } = response.data.data;
       
       onSync(friendName, commonPlatforms);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Sync Error:', err);
-      setError(err.response?.data?.message || 'No se pudo conectar con tu amigo.');
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message || 'No se pudo conectar con tu amigo.');
+      } else {
+        setError('No se pudo conectar con tu amigo.');
+      }
     } finally {
       setIsLoading(false);
     }

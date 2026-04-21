@@ -16,7 +16,7 @@ export const getAvailablePlatforms = async (_req: Request, res: Response): Promi
     const platforms = Object.values(PLATFORMS).map(p => ({
       id: p.id,
       name: p.name,
-      color: p.color,
+      brandColor: p.color,
       logo: p.logo
     }));
 

@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from './useAuth';
 import { movieService } from '../services/movie.service';
+import type { Movie } from '../types/movie';
 import { toast } from 'sonner';
+import axios from 'axios';
 
 /**
  * Hook especializado para la gestión del perfil del usuario y favoritos.
@@ -11,7 +13,7 @@ import { toast } from 'sonner';
 export const useProfile = () => {
   const { setUser, isAuthenticated } = useAuth();
   const [isUpdating, setIsUpdating] = useState(false);
-  const [watchlist, setWatchlist] = useState<any[]>([]);
+  const [watchlist, setWatchlist] = useState<Movie[]>([]);
   const [isLoadingWatchlist, setIsLoadingWatchlist] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +31,7 @@ export const useProfile = () => {
       if (response.success) {
         setWatchlist(response.data);
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error fetching watchlist:', err);
     } finally {
       setIsLoadingWatchlist(false);
@@ -46,7 +48,7 @@ export const useProfile = () => {
   /**
    * El Cofre: Toggle Optimista (v18.2 Staff Engineer Directive)
    */
-  const toggleWatchlist = async (movie: any) => {
+  const toggleWatchlist = async (movie: Movie) => {
     const movieId = movie.id;
     const isAlreadySaved = isInWatchlist(movieId);
     
@@ -65,7 +67,7 @@ export const useProfile = () => {
     // 2. Persistencia en segundo plano
     try {
       await movieService.toggleWatchlist(movie);
-    } catch (err) {
+    } catch {
       // 3. Reversión en caso de fallo
       setWatchlist(previousWatchlist);
       toast.error('Error de sincronización', {
@@ -87,8 +89,10 @@ export const useProfile = () => {
         setUser((prevUser) => prevUser ? { ...prevUser, streamingPlatforms } : null);
       }
       return response.data;
-    } catch (err: any) {
-      const msg = err.response?.data?.message || 'Error al actualizar preferencias';
+    } catch (err: unknown) {
+      const msg = axios.isAxiosError(err) 
+        ? (err.response?.data?.message || 'Error al actualizar preferencias')
+        : 'Error al actualizar preferencias';
       setError(msg);
       throw new Error(msg);
     } finally {
@@ -110,8 +114,10 @@ export const useProfile = () => {
         } : null);
       }
       return response.data;
-    } catch (err: any) {
-      const msg = err.response?.data?.message || 'Error al actualizar historial';
+    } catch (err: unknown) {
+      const msg = axios.isAxiosError(err)
+        ? (err.response?.data?.message || 'Error al actualizar historial')
+        : 'Error al actualizar historial';
       setError(msg);
       throw new Error(msg);
     }

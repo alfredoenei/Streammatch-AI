@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 import { ChevronLeft, EyeOff, Sparkles, History as HistoryIcon } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { movieService } from '../services/movie.service';
 import type { Movie } from '../types/movie';
 import MovieGrid from '../components/MovieGrid';
@@ -20,9 +21,13 @@ const History: React.FC = () => {
     try {
       const data = await movieService.getWatchedHistory();
       setMovies(data.data || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("History page error:", err);
-      setError(err.message || 'No se pudo cargar tu historial de visionado.');
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message || 'No se pudo cargar tu historial de visionado.');
+      } else {
+        setError('No se pudo cargar tu historial de visionado.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -39,7 +44,7 @@ const History: React.FC = () => {
   useEffect(() => {
     if (user?.watchedMovies) {
       setMovies((prevMovies) => 
-        prevMovies.filter(movie => user.watchedMovies.some((w: any) => w.id === movie.id && w.media_type === movie.media_type))
+        prevMovies.filter(movie => user.watchedMovies.some((w) => w.id === movie.id && w.media_type === movie.media_type))
       );
     }
   }, [user?.watchedMovies]);

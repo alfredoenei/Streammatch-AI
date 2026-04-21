@@ -1,10 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { Film, Mail, Lock, Eye, EyeOff, Loader2, ChevronRight, Quote as QuoteIcon } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import loginBg from '../assets/login-bg.png';
 
 const loginSchema = z.object({
@@ -53,7 +53,7 @@ const Login: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const selectedQuote = useMemo(() => EPIC_QUOTES[Math.floor(Math.random() * EPIC_QUOTES.length)], []);
+  const [selectedQuote] = useState(() => EPIC_QUOTES[Math.floor(Math.random() * EPIC_QUOTES.length)]);
 
   const {
     register,
@@ -68,7 +68,7 @@ const Login: React.FC = () => {
       setError(null);
       await login(data.email, data.password);
       navigate('/');
-    } catch (err: any) {
+    } catch {
       setError('Credenciales incorrectas');
     }
   };

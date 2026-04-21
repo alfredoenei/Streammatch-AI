@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Film, Tv, Infinity } from 'lucide-react';
+import { Film, Tv, Infinity as InfinityIcon } from 'lucide-react';
 
 export type SearchMode = 'movie' | 'tv' | 'both';
 
@@ -12,7 +12,7 @@ interface ModeSelectorProps {
 const MODES = [
   { id: 'movie', label: 'Películas', icon: Film },
   { id: 'tv', label: 'Series', icon: Tv },
-  { id: 'both', label: 'Híbrido', icon: Infinity },
+  { id: 'both', label: 'Híbrido', icon: InfinityIcon },
 ] as const;
 
 /**
