@@ -88,13 +88,19 @@ export const useSearch = (platforms: string[] = [], initialMode: SearchMode = 'b
         
         setChatHistory(history);
         
-        // v17.1: Si hay historial, queremos ver los últimos resultados de esa sesión
-        if (history.length > 0) {
-          const lastUserPrompt = [...history].reverse().find(m => m.sender === 'user')?.text;
-          if (lastUserPrompt && lastUserPrompt.length >= 3) {
-            performSearch(lastUserPrompt, false, activeMode, true);
-          }
+        // v28.4: Rehidratación de Estado Completo (Zero-Fetch Snapshot)
+        // Recuperamos los pósters y la narrativa guardados sin disparar la IA
+        if (sessionData.data.lastResults) {
+          setResults(sessionData.data.lastResults);
         }
+        if (sessionData.data.lastNarrative) {
+          setNarrative(sessionData.data.lastNarrative);
+        }
+        if (sessionData.data.lastMessage) {
+          setMessage(sessionData.data.lastMessage);
+        }
+
+        console.log('⚡ [RADAR] Rehidratación de memoria fotográfica (0 tokens) completada.');
       } else {
          throw new Error('Estructura de historial inválida o inexistente');
       }
@@ -270,7 +276,7 @@ export const useSearch = (platforms: string[] = [], initialMode: SearchMode = 'b
     interactionType,
     loadingStatus, // v22.0
     hasActiveSession: chatHistory.length > 0,
-    isActive: query.trim().length >= 3 || chatHistory.length > 0,
+    isActive: isSearching || results.length > 0 || chatHistory.length > 0,
     handleAISearch: () => performSearch(query, false, activeMode),
     triggerExpandedSearch: () => performSearch(query, true, activeMode),
     resetRadar

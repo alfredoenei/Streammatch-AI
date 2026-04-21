@@ -8,7 +8,6 @@ interface SearchBarProps {
   isLoading?: boolean;
   onAISearch?: () => void;
   hasActiveSession?: boolean; // v16.4
-  onReset?: () => void;        // v16.4
 }
 
 const SUGGESTIONS = [
@@ -36,8 +35,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   onChange, 
   isLoading, 
   onAISearch,
-  hasActiveSession,
-  onReset
+  hasActiveSession
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
@@ -121,7 +119,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                    ? 'EL SOMMELIER ESTÁ PENSANDO...' 
                    : (isFocused 
                        ? (hasActiveSession ? 'ESCRIBE TU PETICIÓN AL SOMMELIER...' : 'DESCUBRE TUS PRÓXIMAS PELÍCULAS...') 
-                       : activeSuggestions[suggestionIndex]
+                       : activeSuggestions[suggestionIndex % activeSuggestions.length]
                      )
                 }
               </motion.span>

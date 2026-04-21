@@ -1,7 +1,21 @@
+export interface IPremiumMetadata {
+  brandColor: string;
+  logo: string;
+  platformName: string;
+  url?: string; // v34.7: Added for deep links
+}
+
+export interface IAvailability {
+  isAvailable: boolean;
+  sources?: { platform: string; url: string; name: string }[];
+}
+
 export interface Movie {
   id: number;
   title?: string;        // Usado por Películas
   name?: string;         // Usado por Series
+  original_title?: string; // v34.5
+  local_title?: string;    // v34.5
   overview: string;
   poster_path?: string;
   backdrop_path?: string;
@@ -12,11 +26,7 @@ export interface Movie {
   popularity?: number;
   media_type: 'movie' | 'tv';
   isExternal?: boolean;
-  premiumMetadata?: {
-    brandColor: string;
-    logo: string;
-    platformName: string;
-  } | null;
+  premiumMetadata?: IPremiumMetadata | null;
   isAvailable?: boolean;
   allAvailableProviders?: any[];
   // v14.1 Aggregator fields
@@ -25,10 +35,7 @@ export interface Movie {
   trailerUrl?: string | null;
   voteAverage?: number | null;
   year?: number;
-  availability?: {
-    isAvailable: boolean;
-    sources?: { platform: string; url: string; name: string }[];
-  };
+  availability?: IAvailability;
 }
 
 export interface DetailedMovie extends Movie {

@@ -23,6 +23,9 @@ export interface IRadarConversationDocument extends Document {
   originalPrompt: string;
   turns: ITurn[];
   lockedIdentities: Map<string, ILockedIdentity>; // Key: "title-year-type"
+  lastResults: any[]; // v28.4 Snapshot de Películas
+  lastNarrative: string | null; // v28.4 Snapshot Sommelier
+  lastMessage: string | null; // v28.4 Snapshot Status
   lastAccessedAt: Date;
 }
 
@@ -54,6 +57,9 @@ const RadarConversationSchema = new Schema<IRadarConversationDocument>({
       posterUrl: { type: String, default: null }
     }, { _id: false })
   },
+  lastResults: { type: Schema.Types.Mixed, default: [] },
+  lastNarrative: { type: String, default: null },
+  lastMessage: { type: String, default: null },
   lastAccessedAt: { type: Date, default: Date.now }
 }, { timestamps: true });
 

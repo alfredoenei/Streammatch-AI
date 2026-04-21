@@ -101,11 +101,15 @@ const SommelierNarrative: React.FC<SommelierNarrativeProps> = ({ content, poster
               <ReactMarkdown 
                 components={{
                   // Custom styling for markdown elements
-                  p: ({ children }) => <p className="text-zinc-200 text-lg lg:text-xl font-medium leading-relaxed tracking-tight">{children}</p>,
+                  p: ({ children }) => (
+                    <p className="text-zinc-200 text-lg lg:text-xl font-medium leading-[1.7] tracking-tight mb-6 last:mb-0">
+                      {children}
+                    </p>
+                  ),
                   strong: ({ children }) => (
                     <strong 
-                      className="font-black drop-shadow-md transition-colors duration-1000"
-                      style={{ color: colors.vibrant }}
+                      className="font-black drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] transition-colors duration-1000"
+                      style={{ color: '#ffffff' }} // High-contrast pure white for elegance
                     >
                       {children}
                     </strong>

@@ -42,20 +42,46 @@ const MovieGrid: React.FC<MovieGridProps> = ({ movies, isLoading, onOpenModal })
     return null; // El Empty State lo manejaremos en el Dashboard
   }
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.08,
+        delayChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 15
+      }
+    }
+  };
+
   return (
-    <div className={gridClassName}>
+    <motion.div 
+      className={gridClassName}
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
       {movies.map((movie, index) => (
         <motion.div
           key={movie.id ? `movie-${movie.id}` : `fallback-movie-${index}`}
-          variants={{
-            hidden: { opacity: 0, y: 20 },
-            visible: { opacity: 1, y: 0 }
-          }}
+          variants={itemVariants}
         >
           <MovieCard movie={movie} onOpenModal={onOpenModal} />
         </motion.div>
       ))}
-    </div>
+    </motion.div>
   );
 };
 

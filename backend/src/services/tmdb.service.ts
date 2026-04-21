@@ -129,6 +129,64 @@ class TMDBService {
   }
 
   /**
+   * Universal Fallback v34.6: Doble Check.
+   * Busca por título original y, si falla, reintenta con el título local.
+   */
+  async searchByTitle(
+    title: string, 
+    year: number, 
+    type: 'movie' | 'tv',
+    fallbackTitle?: string
+  ): Promise<IMediaIdentity | null> {
+    await this.configPromise;
+    
+    const executeSearch = async (query: string): Promise<IMediaIdentity | null> => {
+      try {
+        console.log(`📡 [TMDB_FALLBACK] Buscando "${query}" (${year})...`);
+        const response = await this.api.get(`/search/${type === 'tv' ? 'tv' : 'movie'}`, {
+          params: { 
+            query,
+            primary_release_year: type === 'movie' ? year : undefined,
+            first_air_date_year: type === 'tv' ? year : undefined,
+            language: 'es-ES'
+          }
+        });
+
+        const results = response.data.results;
+        if (results && results.length > 0) {
+          const hit = results[0];
+          return {
+            imdbId: null, 
+            tmdbId: hit.id,
+            traktId: null,
+            title: hit.title || hit.name,
+            original_title: hit.original_title || hit.original_name,
+            local_title: hit.title || hit.name,
+            year: parseInt((hit.release_date || hit.first_air_date || '0').substring(0, 4)),
+            type
+          };
+        }
+        return null;
+      } catch (error) {
+        console.error(`❌ [TMDB] Fallo en búsqueda directa para "${query}":`, (error as Error).message);
+        return null;
+      }
+    };
+
+    // 1. Primer intento (Título principal/Original)
+    let identity = await executeSearch(title);
+    if (identity) return identity;
+
+    // 2. Segundo intento (Título local de la IA si existe)
+    if (fallbackTitle && fallbackTitle !== title) {
+      console.log(`🛡️ [TMDB_RETRY] No hubo suerte con "${title}". Reintentando con título local: "${fallbackTitle}"...`);
+      identity = await executeSearch(fallbackTitle);
+    }
+
+    return identity;
+  }
+
+  /**
    * Carga la configuración de imágenes al iniciar.
    */
   private async _loadConfiguration() {

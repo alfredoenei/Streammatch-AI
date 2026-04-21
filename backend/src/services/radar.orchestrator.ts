@@ -13,7 +13,7 @@ import { PLATFORMS } from '../config/platforms';
 class RadarOrchestrator {
   
   async orchestrateSemanticSearch(
-    selection: { title: string; year: number; type: 'movie' | 'tv' }[], 
+    selection: { title: string; year: number; type: 'movie' | 'tv'; original_title?: string; local_title?: string }[], 
     region: string, 
     userPlatforms: string[],
     watchedMovies: any[] = [], // Opcional para filtrar vistos
@@ -74,6 +74,8 @@ class RadarOrchestrator {
         tmdbId: identity.tmdbId, // Preservados para la sesión
         imdbId: identity.imdbId, 
         title: identity.title,
+        original_title: identity.original_title, // v34.5
+        local_title: identity.local_title,       // v34.5
         year: identity.year,
         media_type: identity.type,
         ...aesthetic,
@@ -85,10 +87,23 @@ class RadarOrchestrator {
       };
     }));
 
+    // 3. Fase de Limpieza y De-duplicación v34.7
+    const seenKeys = new Set<string>();
     const successfulResults = finalResults
       .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
       .map(r => r.value)
-      .filter(v => v !== null);
+      .filter(v => {
+        if (v === null) return false;
+        
+        // Generar clave de identidad única para evitar duplicados visuales
+        const key = `${v.title.toLowerCase()}-${v.year}-${v.media_type}`.replace(/\s+/g, '');
+        if (seenKeys.has(key)) {
+          console.log(`🚫 [DEDUP] Silenciando duplicado detectado: ${v.title} (${v.year})`);
+          return false;
+        }
+        seenKeys.add(key);
+        return true;
+      });
 
     console.log(`--- 🏁 [ORQUESTRADOR] Flujo completado. ${successfulResults.length} títulos listos para el Radar. ---\n`);
     

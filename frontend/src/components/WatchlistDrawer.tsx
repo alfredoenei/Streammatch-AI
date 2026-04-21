@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Trash2, ExternalLink, Film, Tv, Play } from 'lucide-react';
+import { X, Trash2, Film, Play } from 'lucide-react';
 import { useProfile } from '../hooks/useProfile';
 
 interface WatchlistDrawerProps {
@@ -83,8 +83,9 @@ const WatchlistDrawer: React.FC<WatchlistDrawerProps> = ({ isOpen, onClose }) =>
                             {/* Poster Small */}
                             <div className="w-20 h-28 rounded-lg overflow-hidden flex-shrink-0 border border-white/10 shadow-lg">
                                 <img 
-                                    src={movie.posterUrl || `https://image.tmdb.org/t/p/w200${movie.poster_path}`} 
-                                    alt={movie.title}
+                                    src={movie.posterUrl || (movie.poster_path ? `https://image.tmdb.org/t/p/w200${movie.poster_path}` : '')} 
+                                    alt={movie.local_title || movie.title || movie.name}
+                                    referrerPolicy="no-referrer"
                                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                 />
                             </div>
@@ -99,7 +100,7 @@ const WatchlistDrawer: React.FC<WatchlistDrawerProps> = ({ isOpen, onClose }) =>
                                         <span className="text-[9px] font-bold text-zinc-500">{releaseYear}</span>
                                     </div>
                                     <h4 className="text-sm font-bold text-white line-clamp-2 leading-tight group-hover:text-indigo-400 transition-colors">
-                                        {movie.title || movie.name}
+                                        {movie.local_title || movie.title || movie.name}
                                     </h4>
                                 </div>
 
@@ -107,7 +108,7 @@ const WatchlistDrawer: React.FC<WatchlistDrawerProps> = ({ isOpen, onClose }) =>
                                     <button 
                                         onClick={() => {
                                             const sources = movie.availability?.sources || [];
-                                            const url = sources[0]?.url || (movie.premiumMetadata as any)?.url;
+                                            const url = sources[0]?.url || movie.premiumMetadata?.url;
                                             if (url) window.open(url, '_blank');
                                         }}
                                         className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg flex items-center justify-center gap-2 transition-all active:scale-95"

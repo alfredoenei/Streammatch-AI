@@ -20,7 +20,7 @@
 
 :root {
   font-family: 'Inter', system-ui, sans-serif;
-  line-height: 1.5;
+  line-height: 1.6;
   font-weight: 400;
   background-color: #09090b; /* Zinc 950 */
   color: #fafafa;
@@ -32,6 +32,28 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   background-color: #09090b;
+}
+
+/* Elegant Premium Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Premium Typography Accents */
+strong, b {
+  color: #ffffff;
+  font-weight: 700;
 }
 
 

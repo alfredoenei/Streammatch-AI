@@ -121,9 +121,9 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie, onOpenModal }) => {
   return (
     <div 
       onClick={() => onOpenModal?.(movieIdNum, mType)}
-      className="relative rounded-2xl overflow-hidden aspect-[2/3] group cursor-pointer bg-zinc-900 shadow-xl transition-all duration-500 hover:scale-[1.02] border border-white/5"
+      className="relative rounded-2xl overflow-hidden aspect-[2/3] group cursor-pointer bg-zinc-900 shadow-xl transition-all duration-500 hover:scale-[1.02] border border-white/5 hover:shadow-[0_10px_40px_-10px_rgba(255,255,255,0.1)]"
       style={{
-        boxShadow: movie.premiumMetadata?.brandColor ? `0 10px 40px ${movie.premiumMetadata.brandColor}15` : undefined,
+        boxShadow: movie.premiumMetadata?.brandColor ? `0 20px 50px ${movie.premiumMetadata.brandColor}20` : undefined,
         borderColor: isSaved ? `${movie.premiumMetadata?.brandColor || '#6366f1'}40` : undefined
       }}
     >
@@ -136,8 +136,9 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie, onOpenModal }) => {
         {!imageError ? (
           <img 
             src={imageUrl} 
-            alt={movie.title || movie.name} 
+            alt={movie.local_title || movie.title || movie.name} 
             loading="lazy"
+            referrerPolicy="no-referrer"
             className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-110 ${!imageLoaded ? 'opacity-0' : 'opacity-100'} ${movie.isAvailable === false ? 'grayscale opacity-70' : ''}`}
             onLoad={() => {
                 setImageLoaded(true);
@@ -153,7 +154,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie, onOpenModal }) => {
             <div className="space-y-1 px-4">
                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Título Recomendado</p>
                <h4 className="text-sm font-black text-white uppercase leading-tight line-clamp-3">
-                 {movie.title || movie.name}
+                 {movie.local_title || movie.title || movie.name}
                </h4>
             </div>
           </div>
@@ -176,9 +177,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie, onOpenModal }) => {
          
          {/* Platform Logo */}
          {movie.isAvailable !== false && movie.premiumMetadata && (
-            <div className="p-1.5 bg-black/40 backdrop-blur-xl rounded-xl border border-white/10 shadow-lg flex items-center justify-center">
-              <img src={movie.premiumMetadata.logo} alt={platformName} className="w-5 h-5 object-contain" />
-            </div>
+               <img src={movie.premiumMetadata.logo} alt={platformName} className="w-5 h-5 object-contain" referrerPolicy="no-referrer" />
          )}
       </div>
 
@@ -226,7 +225,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie, onOpenModal }) => {
 
       {/* Info Overlay */}
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/60 to-transparent p-4 transition-all duration-300 z-10">
-        <h3 className="line-clamp-1 text-sm font-bold text-white tracking-tight">{movie.title || movie.name}</h3>
+        <h3 className="line-clamp-1 text-sm font-bold text-white tracking-tight">{movie.local_title || movie.title || movie.name}</h3>
         <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mt-0.5">{releaseYear}</p>
       </div>
     </div>

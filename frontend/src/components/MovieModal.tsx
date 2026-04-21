@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Play, Star, Calendar, Clock, Loader2, Layers } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { useProfile } from '../hooks/useProfile';
 import { movieService } from '../services/movie.service';
 import type { DetailedMovie } from '../types/movie';
 
@@ -16,9 +14,6 @@ const TMDB_BACKDROP_URL = 'https://image.tmdb.org/t/p/original';
 const TMDB_POSTER_URL = 'https://image.tmdb.org/t/p/w500';
 
 const MovieModal: React.FC<MovieModalProps> = ({ movieData, onClose }) => {
-  const { user } = useAuth();
-  const { toggleWatched, isWatched: checkWatched } = useProfile(); // Assuming useProfile might have these, or cleaning if not. Actually let's just remove legacy.
-  const { toggleWatchlist } = useProfile();
   const [movie, setMovie] = useState<DetailedMovie | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
@@ -65,7 +60,7 @@ const MovieModal: React.FC<MovieModalProps> = ({ movieData, onClose }) => {
     (v: any) => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser')
   );
 
-  const title = movie?.title || movie?.name || 'Cargando...';
+  const title = movie?.local_title || movie?.title || movie?.name || movie?.original_title || 'Cargando...';
   const releaseDate = movie?.release_date || movie?.first_air_date || '';
   const runtime = movie?.runtime || (movie?.episode_run_time?.[0]);
 
@@ -106,9 +101,10 @@ const MovieModal: React.FC<MovieModalProps> = ({ movieData, onClose }) => {
                   ) : (
                     <>
                       <img 
-                        src={movie.backdrop_path ? `${TMDB_BACKDROP_URL}${movie.backdrop_path}` : `${TMDB_POSTER_URL}${movie.poster_path}`} 
+                        src={movie.backdropUrl || movie.posterUrl || (movie.backdrop_path ? `${TMDB_BACKDROP_URL}${movie.backdrop_path}` : `${TMDB_POSTER_URL}${movie.poster_path}`)} 
                         alt={title}
                         className="w-full h-full object-cover transition-transform duration-1000"
+                        referrerPolicy="no-referrer"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-transparent to-transparent md:bg-gradient-to-r md:from-transparent md:to-zinc-900" />
                       

@@ -67,36 +67,23 @@ export const getTrendingMovies = async (req: Request, res: Response): Promise<vo
  */
 export const getRecommendations = async (req: Request, res: Response): Promise<void> => {
   try {
-    const user = req.user as IUserDocument;
     const { ignorePlatforms } = req.query;
-    const activeRegion = user.region || 'ES';
 
-    let platformsToUse: StreamingPlatform[];
-
-    if (ignorePlatforms === 'true') {
-      platformsToUse = AVAILABLE_PLATFORMS as StreamingPlatform[];
-    } else {
-      platformsToUse = user.streamingPlatforms as StreamingPlatform[] || [];
-    }
-
-    const aiFilters = await aiService.translatePromptToFilters(
-      'Recomienda las 15 mejores películas y series tendencia actuales de alta calidad.',
-      user.tasteProfile,
-      undefined,
-      'both',
-      user.name
-    );
-
-    const selection = (aiFilters.movie_selection && aiFilters.movie_selection.length > 0)
-      ? aiFilters.movie_selection
-      : aiFilters.movie_titles.map(t => ({ title: t, year: 2024, type: 'movie' as const }));
-
-    const results = await radarOrchestrator.orchestrateSemanticSearch(
-      selection,
-      activeRegion,
-      platformsToUse,
-      user.watchedMovies
-    );
+    // v28.2: CTO Directive. Zero AI Tokens for Zero-State.
+    // Fetch raw trending from TMDB instantly without passing through RadarOrchestrator
+    const tmdbData = await tmdbService.getTrendingMovies();
+    const results = tmdbData.results.slice(0, 15).map((r: any) => ({
+      id: r.id,
+      tmdbId: r.id,
+      imdbId: null,
+      title: r.title || r.name,
+      year: parseInt(r.release_date || r.first_air_date ? (r.release_date || r.first_air_date).substring(0, 4) : '2024'),
+      media_type: r.media_type === 'tv' ? 'tv' : 'movie',
+      posterUrl: r.poster_path ? `https://image.tmdb.org/t/p/w500${r.poster_path}` : null,
+      source: 'zero_state_trending',
+      isAvailable: true, // Optimistically display for Zero-State
+      availability: { isAvailable: true, sources: [] } // Bypassed watchmode
+    }));
 
     res.status(200).json({
       success: true,
@@ -109,7 +96,7 @@ export const getRecommendations = async (req: Request, res: Response): Promise<v
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error instanceof Error ? error.message : 'Fallo en la sincronización del Radar Premium.'
+      message: error instanceof Error ? error.message : 'Fallo al obtener tendencias iniciales.'
     });
   }
 };
@@ -192,12 +179,14 @@ export const recommendAI = async (req: Request, res: Response): Promise<void> =>
       // Usamos cast a any para evitar problemas de tipos con threadId en Mongoose Query
       session = await (RadarConversation as any).findOne({ threadId: sessionId, userId: user._id });
       if (session) {
-        const lastTurns = session.turns.slice(-2).map((t: any) => `USER: ${t.prompt}\nAI: ${t.aiResponse}`).join('\n\n');
+        // v31.0: Restauración Lírica - Memoria Total Restaurada
+        const lastTurns = session.turns.map((t: any) => `USER: ${t.prompt}\nAI: ${t.aiResponse}`).join('\n\n');
+        
         lockedIdentities = Object.fromEntries(session.lockedIdentities);
         const lockedTitles = Object.values(lockedIdentities).map((l: any) => `${l.title} (${l.year})`).join(', ');
         
         conversationalContext = `PROMPT ORIGINAL: ${session.originalPrompt}\n\nÚLTIMOS TURNOS:\n${lastTurns}\n\nTÍTULOS ACTUALMENTE EN PANTALLA: ${lockedTitles}`;
-        console.log(`🧠 [MEMORIA] Contexto cargado: ${session.turns.length} turnos.`);
+        console.log(`🧠 [MEMORIA TOTAL] Contexto restaurado: ${session.turns.length} turnos.`);
       }
     }
 
@@ -207,7 +196,8 @@ export const recommendAI = async (req: Request, res: Response): Promise<void> =>
       abortController.signal,
       activeMode as 'movie' | 'tv' | 'both',
       user.name,
-      conversationalContext
+      conversationalContext,
+      session?.turns || [] // v32.1: Pasar el historial real para optimización
     );
 
     const headers = req.headers as any;
@@ -272,6 +262,11 @@ export const recommendAI = async (req: Request, res: Response): Promise<void> =>
         aiResponse: aiFilters.narrative_justification,
         timestamp: new Date()
       });
+
+      // v28.4: Capturar el Snapshot del Estado para Rehidratación de 0 Tokens
+      session.lastResults = results;
+      session.lastNarrative = aiFilters.narrative_justification;
+      session.lastMessage = aiFilters.advisory;
 
       await session.save();
     }
@@ -356,7 +351,10 @@ export const getSession = async (req: Request, res: Response): Promise<void> => 
       data: {
         sessionId: session.threadId,
         originalPrompt: session.originalPrompt,
-        history: chatHistory
+        history: chatHistory,
+        lastResults: session.lastResults,     // v28.4
+        lastNarrative: session.lastNarrative, // v28.4
+        lastMessage: session.lastMessage      // v28.4
       }
     });
   } catch (error) {

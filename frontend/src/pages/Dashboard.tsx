@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertCircle, Check, Film, History, Loader2, PartyPopper, Save, Search, Settings, Sparkles, Tv, Users, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -120,13 +120,28 @@ const Dashboard: React.FC = () => {
     initPlatforms();
   }, [user?.id]);
 
+  const hasFetchedTrendingRef = useRef(false);
+
   useEffect(() => {
     const fetchRecommendations = async () => {
+      // v25.0: Guardia estricta. Si hay una sesión activa, no pedimos tendencias.
+      if (hasActiveSession) {
+        setIsLoading(false);
+        return;
+      }
+      
+      // v26.0: Bloqueo de bucle en Reset. Si ya cargamos tendencias, no repetimos.
+      if (hasFetchedTrendingRef.current) {
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       setError(null);
       try {
         const data = await movieService.getRecommendations(activePlatforms);
         setRecommendations(data.data || []);
+        hasFetchedTrendingRef.current = true;
       } catch (err: any) {
         setError(err.message || 'Error al cargar recomendaciones.');
       } finally {
@@ -134,7 +149,7 @@ const Dashboard: React.FC = () => {
       }
     };
     if (isAuthenticated) fetchRecommendations();
-  }, [partyMode.isActive, partyMode.commonPlatforms, user?.streamingPlatforms, isAuthenticated]);
+  }, [partyMode.isActive, partyMode.commonPlatforms, user?.streamingPlatforms, isAuthenticated, hasActiveSession]);
 
   const handleTogglePlatform = (id: string) => {
     setSelectedPlatforms(prev => 
@@ -536,7 +551,6 @@ const Dashboard: React.FC = () => {
                   isLoading={isSearching} 
                   onAISearch={handleAISearch}
                   hasActiveSession={hasActiveSession}
-                  onReset={resetRadar}
               />
           </div>
       </div>

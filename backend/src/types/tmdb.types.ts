@@ -77,6 +77,8 @@ export const AIResponseSchema = z.object({
   internal_reasoning: z.string().default(''), // v13.1 Chain of Thought
   movie_selection: z.array(z.object({
     title: z.string(),
+    original_title: z.string().optional(), // v34.5: Precision machine title
+    local_title: z.string().optional(),    // v34.5: Human/Spanish title
     year: z.number(),
     type: z.enum(['movie', 'tv'])
   })).default([]), // v14.3 Structured Identity
@@ -116,6 +118,8 @@ export interface IMediaIdentity {
   tmdbId: number | null;
   traktId: number | null;
   title: string;
+  original_title?: string; // v34.5
+  local_title?: string;    // v34.5
   year: number;
   type: 'movie' | 'tv';
   posterUrl?: string; // v15.0: Native Fallback Poster
