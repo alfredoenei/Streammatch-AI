@@ -244,13 +244,17 @@ export const recommendAI = async (req: Request, res: Response): Promise<void> =>
       }
       
       results.forEach(r => {
-        const key = `${r.title.toLowerCase()}-${r.year}-${r.media_type}`.replace(/\./g, '');
+        // v37.1: Normalización de llaves (Anti-Unicode) y Candado de Metadatos
+        const normalizedTitle = r.title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        const safeYear = r.year || new Date().getFullYear();
+        const key = `${normalizedTitle}-${safeYear}-${r.media_type}`.replace(/[^a-z0-9-]/g, '');
+        
         session.lockedIdentities.set(key, {
-          id: r.id,
+          id: r.tmdbId || r.id || 0, // v37.1: Asegurar un ID numérico para el esquema
           tmdbId: r.tmdbId,
           imdbId: r.imdbId,
           title: r.title,
-          year: r.year,
+          year: safeYear,
           type: r.media_type,
           posterUrl: r.posterUrl
         });

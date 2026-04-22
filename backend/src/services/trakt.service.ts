@@ -95,7 +95,7 @@ class TraktService {
         tmdbId: best.ids.tmdb || null,
         traktId: best.ids.trakt || null,
         title: best.title,
-        year: best.year,
+        year: parseInt(best.year || new Date().getFullYear().toString()), // v37.1: Force numeric year
         type: type,
       };
     }
@@ -117,7 +117,7 @@ class TraktService {
       tmdbId: best.ids.tmdb || null,
       traktId: best.ids.trakt || null,
       title: best.title,
-      year: best.year,
+      year: parseInt(best.year || new Date().getFullYear().toString()), // v37.1: Force numeric year
       type: type,
     };
   }
