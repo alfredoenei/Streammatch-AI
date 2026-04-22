@@ -54,10 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setToken(token);
         localStorage.setItem('token', token);
       }
-    } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        throw new Error(error.response?.data?.message || 'Error al iniciar sesión');
-      }
+    } catch (error: any) {
       throw error;
     }
   };
