@@ -3,6 +3,7 @@ import axios from 'axios';
 import { CircuitBreaker } from '../models/SystemCache';
 import { User } from '../models/User';
 import { watchmodeService } from '../services/watchmode.service';
+import { identityResolver } from '../services/identity.resolver';
 
 const router = Router();
 
@@ -35,7 +36,6 @@ router.get('/health', async (req, res) => {
            const realRegion = realUser.region || 'ES';
            
            // v36.7: Traza de Resolución de Identidad
-           const { identityResolver } = await import('../services/identity.resolver');
            const idResult = await identityResolver.resolveSingle('Juego de Tronos', 2011, 'tv');
            const idStatus = idResult?.imdbId ? `RESOLVED (${idResult.imdbId})` : 'FAILED';
            
