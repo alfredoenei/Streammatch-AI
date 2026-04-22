@@ -74,7 +74,8 @@ const Login: React.FC = () => {
       } else if (err.code === 'ERR_NETWORK') {
         setError('Error de conexión: El servidor no responde o hay un problema de CORS');
       } else {
-        setError('Error inesperado. Por favor, intenta más tarde');
+        const serverMessage = err.response?.data?.message;
+        setError(serverMessage ? `Error del servidor: ${serverMessage}` : 'Error inesperado. Por favor, intenta más tarde');
       }
     }
   };
