@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import axios from 'axios';
 import { CircuitBreaker } from '../models/SystemCache';
+import { User } from '../models/User';
 import { watchmodeService } from '../services/watchmode.service';
 
 const router = Router();
@@ -27,16 +28,15 @@ router.get('/health', async (req, res) => {
         watchmodeProbe = `OK (${data.length} sources found for Vikings in ES)`;
         
         // v36.5: Traza con Datos Reales de Base de Datos
-        const { User } = await import('../models/User');
-        const realUser = await User.findOne({ email: 'andresenei@gmail.com' });
+        const realUser = await User.findOne();
         
         if (realUser) {
            const realPlatforms = realUser.streamingPlatforms || [];
            const realRegion = realUser.region || 'ES';
-           const internalResult = await watchmodeService.getAvailability('tt2306299', realRegion, realPlatforms);
+           const internalResult = await watchmodeService.getAvailability('tt2306299', realRegion, realPlatforms as string[]);
            orchestrationTrace = `USER_TRACE (${realUser.email}): ${internalResult.isAvailable ? 'SUCCESS' : 'FAILED'} (Region: ${realRegion}, Platforms: ${realPlatforms.length}, Found: ${internalResult.sources.map(s => s.name).join(', ')})`;
         } else {
-           orchestrationTrace = 'TRACE_ERROR: User not found in DB';
+           orchestrationTrace = 'TRACE_ERROR: No users found in DB';
         }
       } else {
         watchmodeProbe = `ERROR (${probeResponse.status}: ${probeResponse.statusText})`;
