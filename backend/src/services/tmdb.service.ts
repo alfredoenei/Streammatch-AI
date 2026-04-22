@@ -155,8 +155,18 @@ class TMDBService {
         const results = response.data.results;
         if (results && results.length > 0) {
           const hit = results[0];
+          
+          // v36.2: Resolución de ID externo para habilitar Watchmode en Fallback
+          let imdbId = null;
+          try {
+            const extResponse = await this.api.get(`/${type === 'tv' ? 'tv' : 'movie'}/${hit.id}/external_ids`);
+            imdbId = extResponse.data.imdb_id || null;
+          } catch (e) {
+            console.warn(`⚠️ [TMDB] No se pudo obtener IMDb ID para ${hit.id}`);
+          }
+
           return {
-            imdbId: null, 
+            imdbId, 
             tmdbId: hit.id,
             traktId: null,
             title: hit.title || hit.name,

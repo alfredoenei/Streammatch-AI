@@ -10,6 +10,7 @@ import movieRoutes from './routes/movie.routes';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import watchlistRoutes from './routes/watchlist.routes';
+import debugRoutes from './routes/debug.routes';
 
 // Connect to Database
 connectDB();
@@ -47,6 +48,7 @@ app.use('/api/movies', movieRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/watchlist', watchlistRoutes);
+app.use('/api/debug', debugRoutes);
 
 // Health Check
 app.get('/', (req: Request, res: Response) => {
