@@ -10,7 +10,6 @@ import movieRoutes from './routes/movie.routes';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import watchlistRoutes from './routes/watchlist.routes';
-import debugRoutes from './routes/debug.routes';
 
 // Connect to Database
 connectDB();
@@ -41,9 +40,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
-
-// Public Debug (Before Limiter)
-app.use('/api/debug', debugRoutes);
 
 app.use('/api/', apiLimiter);
 
