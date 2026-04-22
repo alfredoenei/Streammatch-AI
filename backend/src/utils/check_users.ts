@@ -22,9 +22,13 @@ const checkUsers = async () => {
     const userCount = await usersCollection.countDocuments();
     console.log(`📊 [DATABASE] Total de usuarios en Atlas: ${userCount}`);
 
-    const users = await usersCollection.find({}, { projection: { email: 1 } }).toArray();
-    console.log('👥 [USERS] Lista de emails registrados:');
-    users.forEach(u => console.log(`   - ${u.email}`));
+    const users = await usersCollection.find({}, { projection: { email: 1, streamingPlatforms: 1, region: 1 } }).toArray();
+    console.log('👥 [USERS] Detalle de configuración:');
+    users.forEach(u => {
+      console.log(`   - 📧 ${u.email}`);
+      console.log(`     📍 Región: ${u.region || 'DEFAULT (ES)'}`);
+      console.log(`     📺 Plataformas: ${JSON.stringify(u.streamingPlatforms || [])}`);
+    });
 
     await mongoose.connection.close();
     process.exit(0);
