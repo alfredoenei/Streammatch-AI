@@ -33,8 +33,17 @@ router.get('/health', async (req, res) => {
         if (realUser) {
            const realPlatforms = realUser.streamingPlatforms || [];
            const realRegion = realUser.region || 'ES';
-           const internalResult = await watchmodeService.getAvailability('tt2306299', realRegion, realPlatforms as string[]);
-           orchestrationTrace = `USER_TRACE (${realUser.email}): ${internalResult.isAvailable ? 'SUCCESS' : 'FAILED'} (Region: ${realRegion}, Platforms: ${realPlatforms.length}, Found: ${internalResult.sources.map(s => s.name).join(', ')})`;
+           
+           // v36.7: Traza de Resolución de Identidad
+           const { identityResolver } = await import('../services/identity.resolver');
+           const idResult = await identityResolver.resolveSingle('Juego de Tronos', 2011, 'tv');
+           const idStatus = idResult?.imdbId ? `RESOLVED (${idResult.imdbId})` : 'FAILED';
+           
+           const internalResult = idResult?.imdbId 
+             ? await watchmodeService.getAvailability(idResult.imdbId, realRegion, realPlatforms as string[])
+             : { isAvailable: false, sources: [] };
+             
+           orchestrationTrace = `USER_TRACE (${realUser.email}): ${internalResult.isAvailable ? 'SUCCESS' : 'FAILED'} (Region: ${realRegion}, Id: ${idStatus}, Found: ${internalResult.sources.map(s => s.name).join(', ')})`;
         } else {
            orchestrationTrace = 'TRACE_ERROR: No users found in DB';
         }
