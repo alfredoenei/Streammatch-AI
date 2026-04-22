@@ -1,7 +1,13 @@
 import axios from 'axios';
 
+const rawBaseURL = import.meta.env.VITE_API_URL || 'https://streammatch-ai.onrender.com/api';
+// Normalizar URL: quitar barra final y asegurar que termina en /api
+const finalBaseURL = rawBaseURL.replace(/\/$/, '').endsWith('/api') 
+  ? rawBaseURL.replace(/\/$/, '') 
+  : `${rawBaseURL.replace(/\/$/, '')}/api`;
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://streammatch-ai.onrender.com/api',
+  baseURL: finalBaseURL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -10,7 +16,7 @@ const api = axios.create({
 // Interceptor to add Authorization header
 api.interceptors.request.use(
   (config) => {
-    console.log(`🔌 [API REQUEST] ${config.method?.toUpperCase()} ${config.url}`);
+    console.log(`🔌 [API REQUEST] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
