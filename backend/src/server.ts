@@ -26,7 +26,31 @@ const apiLimiter = rateLimit({
 });
 
 // Middlewares
-app.use(cors());
+// CORS Configuration
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  process.env.FRONTEND_URL
+].filter(Boolean) as string[];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Permitir peticiones sin origen (como herramientas de test o server-to-server)
+    if (!origin) return callback(null, true);
+    
+    const isNetlify = origin.endsWith('.netlify.app');
+    const isAllowed = allowedOrigins.includes(origin);
+
+    if (isAllowed || isNetlify) {
+      callback(null, true);
+    } else {
+      callback(new Error('Acceso denegado por política CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 app.use('/api/', apiLimiter);
 
