@@ -194,7 +194,27 @@ export const useSearch = (platforms: string[] = [], initialMode: SearchMode = 'b
       }
       
       if (response.success) {
-        setResults(response.data || []);
+        // v35.1: Smart Accumulation Logic (Staff Engineer Surgical Patch)
+        const interactionType = response.meta?.interaction_type || 'INITIAL';
+        
+        if (interactionType === 'REFINEMENT' || interactionType === 'EXPANSION') {
+          setResults(prev => {
+            const newResults = response.data || [];
+            // Deduplicación Estricta: prioritizar tmdbId, fallback a id
+            const existingIds = new Set(prev.map(m => m.tmdbId || m.id));
+            const uniqueNew = newResults.filter(m => {
+              const movieId = m.tmdbId || m.id;
+              return !existingIds.has(movieId);
+            });
+            
+            console.log(`📡 [RADAR] Smart Accumulation (${interactionType}): +${uniqueNew.length} títulos.`);
+            return [...prev, ...uniqueNew];
+          });
+        } else {
+          // INITIAL Search: Hard Reset
+          setResults(response.data || []);
+        }
+
         setMessage(response.message || null);
         setNarrative(response.narrative || null);
         setTotalRaw(response.meta?.totalRaw || 0);

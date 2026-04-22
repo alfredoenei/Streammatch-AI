@@ -280,7 +280,8 @@ export const recommendAI = async (req: Request, res: Response): Promise<void> =>
       meta: {
         total: results.length,
         isExpanded: ignorePlatforms === 'true',
-        region: activeRegion
+        region: activeRegion,
+        interaction_type: aiFilters.interaction_type
       }
     });
   } catch (error: any) {

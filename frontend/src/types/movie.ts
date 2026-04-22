@@ -18,6 +18,8 @@ export interface IAvailability {
 
 export interface Movie {
   id: number;
+  tmdbId?: number;        // v14.1: Preserved for session logic
+  imdbId?: string | null;  // v14.1: Preserved for session logic
   title?: string;        // Usado por Películas
   name?: string;         // Usado por Series
   original_title?: string; // v34.5
