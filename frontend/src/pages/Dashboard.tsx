@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { Link } from 'react-router-dom';
 import { Film, History, PartyPopper, Settings, Sparkles, Tv, Users, X } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
@@ -447,7 +448,20 @@ const Dashboard: React.FC = () => {
             >
               <div className="flex items-center gap-3">
                 <Sparkles className="w-6 h-6 transition-colors duration-1000" style={{ color: accentColors.vibrant }} />
-                <p className="font-medium" style={{ color: accentColors.vibrant }}>{searchMessage}</p>
+                <div className="font-medium" style={{ color: accentColors.vibrant }}>
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => <span className="leading-relaxed">{children}</span>,
+                      strong: ({ children }) => (
+                        <strong className="font-black text-zinc-100 border-b border-white/20 px-0.5 mx-0.5">
+                          {children}
+                        </strong>
+                      )
+                    }}
+                  >
+                    {searchMessage}
+                  </ReactMarkdown>
+                </div>
               </div>
               
               {!isExpanded && searchResults.length === 0 && totalRaw > 0 && (
