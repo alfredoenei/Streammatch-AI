@@ -41,6 +41,10 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
+
+// Public Debug (Before Limiter)
+app.use('/api/debug', debugRoutes);
+
 app.use('/api/', apiLimiter);
 
 // Routes
@@ -48,7 +52,6 @@ app.use('/api/movies', movieRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/watchlist', watchlistRoutes);
-app.use('/api/debug', debugRoutes);
 
 // Health Check
 app.get('/', (req: Request, res: Response) => {
