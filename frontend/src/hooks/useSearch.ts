@@ -174,6 +174,7 @@ export const useSearch = (platforms: string[] = [], initialMode: SearchMode = 'b
     // Actualizamos el historial visual LOCALMENTE para respuesta inmediata (solo si no es rehidratación)
     if (!isRehydration) {
       setChatHistory(prev => [...prev, { sender: 'user', text: trimmedQuery, timestamp: new Date() }]);
+      setQuery(''); // v11.1: Limpieza automática del input tras envío
     }
 
     try {
