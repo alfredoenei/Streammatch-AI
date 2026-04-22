@@ -34,19 +34,7 @@ const allowedOrigins = [
 ].filter(Boolean) as string[];
 
 app.use(cors({
-  origin: (origin, callback) => {
-    // Permitir peticiones sin origen (como herramientas de test o server-to-server)
-    if (!origin) return callback(null, true);
-    
-    const isNetlify = origin.endsWith('.netlify.app');
-    const isAllowed = allowedOrigins.includes(origin);
-
-    if (isAllowed || isNetlify) {
-      callback(null, true);
-    } else {
-      callback(new Error('Acceso denegado por política CORS'));
-    }
-  },
+  origin: true, // Permitir todos los orígenes temporalmente para debug
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']

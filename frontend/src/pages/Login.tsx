@@ -68,8 +68,14 @@ const Login: React.FC = () => {
       setError(null);
       await login(data.email, data.password);
       navigate('/');
-    } catch {
-      setError('Credenciales incorrectas');
+    } catch (err: any) {
+      if (err.response?.status === 401) {
+        setError('Email o contraseña incorrectos');
+      } else if (err.code === 'ERR_NETWORK') {
+        setError('Error de conexión: El servidor no responde o hay un problema de CORS');
+      } else {
+        setError('Error inesperado. Por favor, intenta más tarde');
+      }
     }
   };
 
