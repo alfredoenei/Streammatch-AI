@@ -26,10 +26,18 @@ router.get('/health', async (req, res) => {
         const data = probeResponse.data;
         watchmodeProbe = `OK (${data.length} sources found for Vikings in ES)`;
         
-        // v36.4: Traza de Orquestación Interna
-        const testPlatforms = ['netflix', 'hbo_max', 'amazon_prime'];
-        const internalResult = await watchmodeService.getAvailability('tt2306299', 'ES', testPlatforms);
-        orchestrationTrace = `INTERNAL_MAP: ${internalResult.isAvailable ? 'SUCCESS' : 'FAILED'} (Found: ${internalResult.sources.map(s => s.name).join(', ')})`;
+        // v36.5: Traza con Datos Reales de Base de Datos
+        const { User } = await import('../models/User');
+        const realUser = await User.findOne({ email: 'andresenei@gmail.com' });
+        
+        if (realUser) {
+           const realPlatforms = realUser.streamingPlatforms || [];
+           const realRegion = realUser.region || 'ES';
+           const internalResult = await watchmodeService.getAvailability('tt2306299', realRegion, realPlatforms);
+           orchestrationTrace = `USER_TRACE (${realUser.email}): ${internalResult.isAvailable ? 'SUCCESS' : 'FAILED'} (Region: ${realRegion}, Platforms: ${realPlatforms.length}, Found: ${internalResult.sources.map(s => s.name).join(', ')})`;
+        } else {
+           orchestrationTrace = 'TRACE_ERROR: User not found in DB';
+        }
       } else {
         watchmodeProbe = `ERROR (${probeResponse.status}: ${probeResponse.statusText})`;
       }
